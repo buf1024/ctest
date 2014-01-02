@@ -4,8 +4,11 @@
  *  Created on: 2013-12-28
  *      Author: Luo Guochun
  */
+#define USING_C_TEST
 
 #include "ct.h"
+
+
 TEST(tf2, tc)
 {
     printf("tf2.atc\n");

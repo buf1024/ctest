@@ -1,8 +1,18 @@
 /*
- * ct.h
+ * ct.h -- very very simple c test framework
  *
- *  Created on: 2013-12-31
- *      Author: Luo Guochun
+ * The way of using if is much alike gtest.
+ *
+ * You must define USING_C_TEST macro in the c file which include the
+ * main function. I think very hard of avoid using this USING_C_TEST
+ * macro, But I failed. if I declare all the function in this file to
+ * static, It can compile well(after modifying the __ct_test function),
+ * and run well, But when you look inside the finally binary(using nm
+ * utility), you will see lots of duplicate symbol, that is not the
+ * way I want Any one who knows avoid using the macro, please feel free
+ * to tell me(buf1024@gmail.com). thanks a lot
+ *
+ *  Luo Guochun 2013-12-31
  */
 
 #ifndef __CT_H__
@@ -11,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 //////////////////////////////////////////////////////////////////////
 // data structure from sys/queue.h
@@ -87,6 +98,8 @@ struct {                                \
 #define __gen_symbol(tf, tc)                                         \
     __gen_symbol_2(tf, tc, __LINE__)
 
+#define __discard_func_warning(func) (void)(func)
+
 typedef struct __test_case __test_case_t;
 typedef struct __test_fixture __test_fixture_t;
 typedef struct __test_filter __test_filter_t;
@@ -119,6 +132,7 @@ struct __test_fixture
     void (*setup)();
     void (*teardown)();
 
+    int size;
     __test_caseq_t* caseq;
 };
 
@@ -152,46 +166,36 @@ struct __test
     void (*setup_env)();
     void (*teardown_env)();
 
+    int r_size;
+    int f_size;
     __test_fixtureq_t* run;
     __test_fixtureq_t* failed;
-
     __test_filterq_t* filter;
-
-    // functions prevent multiple definition
-    char* (*__ct_hex_dump)(void*, int, char*);
-    int (*__ct_match)(const char*, const char*);
-    void (*__ct_set_env)(void (*)(), void (*)());
-    __test_fixture_t* (*__ct_get_fixture)(const char*, int); // 0 run, 1 failed
-    void (*__ct_register_test)(__test_case_t*);
-    void (*__ct_register_fixture)(__test_fixture_t*);
-    void (*__ct_add_failed_test)(const char*);
-    void (*__ct_help)();
-    void (*__ct_list_tests)();
-    void (*__ct_init_test)(int, char**);
-    int (*__ct_match_filter)(const char*);
-    int (*__ct_run)();
-    int (*__ct_run_test)();
 };
 
 //////////////////////////////////////////////////////////////////////
 // functions
-static char* __ct_hex_dump(void*, int, char*);
-static int __ct_match(const char*, const char*);
-static void __ct_set_env(void (*)(), void (*)());
-static __test_fixture_t* __ct_get_fixture(const char*, int); // 0 run, 1 failed
-static void __ct_register_test(__test_case_t*);
-static void __ct_register_fixture(__test_fixture_t*);
-static void __ct_add_failed_test(const char*);
-static void __ct_help();
-static void __ct_list_tests();
-static void __ct_init_test(int, char**);
-static int __ct_match_filter(const char*);
-static int __ct_run();
-static int __ct_run_test();
-static __test_t* __ct_test();
+char* __ct_hex_dump(void*, int, char*);
+int __ct_match(const char*, const char*);
+void __ct_set_env(void (*)(), void (*)());
+__test_fixture_t* __ct_get_fixture(const char*, int); // 0 run, 1 failed
+void __ct_register_test(__test_case_t*);
+void __ct_register_fixture(__test_fixture_t*);
+void __ct_add_failed_test(const char*);
+void __ct_help();
+void __ct_list_tests();
+void __ct_init_test(int, char**);
+int __ct_match_filter(const char*);
+int __ct_run();
+int __ct_run_test();
+__test_t* __ct_test();
+int __ct_get_fixture_count();
+int __ct_get_test_count();
+int __ct_is_test_failed(const char* tf, const char* tc);
 
 #define __ct_get_hex(ch) ((0x0F & (ch)) >= 10?'A' + (ch) - 10:'0' + (ch))
 
+#ifdef USING_C_TEST
 char* __ct_hex_dump(void* src, int size, char* dst)
 {
     if(src)
@@ -320,16 +324,8 @@ int __ct_match(const char * text, const char * pattern)
 
 __test_t* __ct_test()
 {
-
-    /*It is a very ugly temp solotion, static __test_t* takes not effective*/
-#ifndef __CT_UGLY_ENV__
-#define __CT_UGLY_ENV__ "__CT_UGLY_ENV__"
-#endif
-
-    __test_t* t = NULL;
-
-    char* env = getenv(__CT_UGLY_ENV__);
-    if(env == NULL) {
+    static __test_t* t = NULL;
+    if(t == NULL) {
 
         t = (__test_t*)malloc(sizeof(*t));
         __ABORT_IF_NO_MONEY(t);
@@ -340,26 +336,6 @@ __test_t* __ct_test()
         __ABORT_IF_NO_MONEY(t->failed);
         t->filter = (__test_filterq_t*)malloc(sizeof(*t->filter));
         __ABORT_IF_NO_MONEY(t->filter);
-
-        t->__ct_hex_dump = __ct_hex_dump;
-        t->__ct_match = __ct_match;
-        t->__ct_set_env= __ct_set_env;
-        t->__ct_get_fixture = __ct_get_fixture; // 0 run, 1 failed
-        t->__ct_register_test = __ct_register_test;
-        t->__ct_register_fixture = __ct_register_fixture;
-        t->__ct_add_failed_test = __ct_add_failed_test;
-        t->__ct_help = __ct_help;
-        t->__ct_list_tests = __ct_list_tests;
-        t->__ct_init_test = __ct_init_test;
-        t->__ct_match_filter = __ct_match_filter;
-        t->__ct_run = __ct_run;
-        t->__ct_run_test = __ct_run_test;
-
-        char env_str[128] = {0};
-        snprintf(env_str, sizeof(env_str) - 1, "%ld", (long)t);
-        setenv(__CT_UGLY_ENV__, env_str, 1);
-    }else{
-        t = (__test_t*)atol(env);
     }
     return t;
 }
@@ -422,6 +398,7 @@ __test_fixture_t* __ct_get_fixture(const char* tf, int type) // 0 run, 1 failed
             __CT_SLIST_INSERT_AFTER(prent, ent, entry);
         }
     }
+    t->r_size++;
     return f;
 }
 
@@ -463,6 +440,7 @@ void __ct_register_test(__test_case_t* test)
             __CT_SLIST_INSERT_AFTER(prent, ent, entry);
         }
     }
+    f->size++;
 }
 void __ct_register_fixture(__test_fixture_t* test)
 {
@@ -515,8 +493,11 @@ void __ct_add_failed_test(const char* tn)
         strcpy(info->tf, tf);
         strcpy(info->tc, tc);
 
+        __test_t* t = __ct_test();
+
         if(__CT_SLIST_EMPTY(f->caseq)) {
             __CT_SLIST_INSERT_HEAD(f->caseq, ent, entry);
+            t->f_size++;
         }else {
             __test_case_entry_t* fent = NULL;
             __test_case_entry_t* prent = NULL;
@@ -536,10 +517,28 @@ void __ct_add_failed_test(const char* tn)
                 } else {
                     __CT_SLIST_INSERT_AFTER(prent, ent, entry);
                 }
+                t->f_size++;
             }
         }
     }
 
+}
+int __ct_is_test_failed(const char* tf, const char* tc)
+{
+    __test_t* t = __ct_test();
+
+    __test_fixture_entry_t* fent = NULL;
+    __CT_SLIST_FOREACH(fent, t->failed, entry) {
+        if(strcmp(fent->test->name, tf) == 0) {
+            __test_case_entry_t* cent = NULL;
+            __CT_SLIST_FOREACH(cent, fent->test->caseq, entry) {
+                if(strcmp(cent->test->tc, tc) == 0) {
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
 }
 
 void __ct_help()
@@ -662,12 +661,22 @@ int __ct_run()
     if(!__CT_SLIST_EMPTY(t->filter)) {
         filter = 1;
     }
+    int fix_count = __ct_get_fixture_count();
+    int test_count = __ct_get_test_count();
+    printf("[==========] Running %d tests from %d test cases\n",
+            test_count, fix_count);
+
+    clock_t used = 0;
+    clock_t envb = clock();
     if(t->setup_env) {
+        printf("[----------] Custom global test environment set-up\n");
         t->setup_env();
     }
     __test_fixture_entry_t* ent = NULL;
     __CT_SLIST_FOREACH(ent, t->run, entry) {
         __test_fixture_t* f = ent->test;
+        printf("[----------] %d tests from %s\n", f->size, f->name);
+        clock_t fixb = clock();
         if(f->setup_testcase){
             f->setup_testcase();
         }
@@ -681,6 +690,8 @@ int __ct_run()
                 }
             }
             if(run) {
+                printf("[ RUN      ] %s\n", c->name);
+                clock_t testb = clock();
                 if(f->setup) {
                     f->setup();
                 }
@@ -690,14 +701,46 @@ int __ct_run()
                 if(f->teardown){
                     f->teardown();
                 }
+                clock_t teste = clock();
+                used = teste - testb;
+                if(__ct_is_test_failed(c->tf, c->tc)) {
+                    printf("[   FAILED ] %s (%ld ms)\n", c->name, used);
+                }else{
+                    printf("[       OK ] %s (%ld ms)\n", c->name, used);
+                }
             }
         }
         if(f->teardown_testcase) {
             f->teardown_testcase();
         }
+        clock_t fixe = clock();
+        used = fixe - fixb;
+        printf("[----------] %d tests from %s (%ld ms total)\n\n",
+                f->size, f->name, used);
     }
     if(t->teardown_env) {
+        printf("[----------] Custom global test environment tear-down\n");
         t->teardown_env();
+    }
+    clock_t enve = clock();
+    used = enve - envb;
+    printf("[==========] %d tests from %d test case ran (%ld ms total)\n",
+            test_count, fix_count, used);
+    if (test_count > 0) {
+        int failed_count = t->f_size;
+        printf("[  PASSED  ] %d tests\n", test_count - failed_count);
+        if (failed_count > 0) {
+            printf("[  FAILED  ] %d tests\n", failed_count);
+            __test_fixture_entry_t* fent = NULL;
+            __CT_SLIST_FOREACH(fent, t->failed, entry) {
+                __test_case_entry_t* cent = NULL;
+                __CT_SLIST_FOREACH(cent, fent->test->caseq, entry) {
+                    printf("[  FAILED  ] %s\n", cent->test->name);
+                }
+            }
+
+        }
+
     }
     return 0;
 }
@@ -721,6 +764,22 @@ int __ct_run_test()
     }
     return 0;
 }
+int __ct_get_fixture_count()
+{
+    __test_t* t = __ct_test();
+    return t->r_size;
+}
+int __ct_get_test_count()
+{
+    int count = 0;
+    __test_t* t = __ct_test();
+    __test_fixture_entry_t* fent = NULL;
+    __CT_SLIST_FOREACH(fent, t->run, entry) {
+        count += fent->test->size;
+    }
+    return count;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // MACROS
