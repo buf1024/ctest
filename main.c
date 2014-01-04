@@ -4,7 +4,7 @@
  *  Created on: 2013-12-28
  *      Author: Luo Guochun
  */
-#define USING_C_TEST
+#define C_TEST_APP
 
 #include "ct.h"
 

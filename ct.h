@@ -195,7 +195,7 @@ int __ct_is_test_failed(const char* tf, const char* tc);
 
 #define __ct_get_hex(ch) ((0x0F & (ch)) >= 10?'A' + (ch) - 10:'0' + (ch))
 
-#ifdef USING_C_TEST
+#ifdef C_TEST_APP
 char* __ct_hex_dump(void* src, int size, char* dst)
 {
     if(src)
@@ -779,7 +779,7 @@ int __ct_get_test_count()
     }
     return count;
 }
-#endif
+#endif // C_TEST_APP
 
 //////////////////////////////////////////////////////////////////////
 // MACROS
