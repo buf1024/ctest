@@ -18,7 +18,7 @@ TEST(spc, t)
 
 void setup_testcase()
 {
-    printf("%s\n", __func__);
+    printf("%s\n", __FUNCTION__ );
 }
 
 void teardown_testcase()
