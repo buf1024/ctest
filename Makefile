@@ -1,5 +1,5 @@
 CC = cc
-CCFLAGS = -O2 -Wall -ggdb -fPIC -fpic
+CCFLAGS = -Wall -ggdb -fPIC -fpic
 
 MY_EXAM = exam
 

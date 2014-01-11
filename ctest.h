@@ -218,6 +218,7 @@ void __ct_add_failed_test(const char*);
 void __ct_help();
 void __ct_list_tests();
 void __ct_init_test(int, char**);
+int __ct_apply_filter();
 int __ct_match_filter(const char*);
 int __ct_run();
 int __ct_run_test();
@@ -694,6 +695,61 @@ void __ct_init_test(int argc, char** argv)
     }
 }
 
+int __ct_apply_filter()
+{
+    __test_t* t = NULL;
+
+    __test_fixture_entry_t* ent = NULL;
+    __test_fixture_entry_t* prent = NULL;
+    __test_fixture_t* f = NULL;
+    __test_case_entry_t* cent = NULL;
+    __test_case_entry_t* prcent = NULL;
+    __test_case_t* c = NULL;
+
+    int match_cnt = 0;
+
+    t = __ct_test();
+
+    __CT_SLIST_FOREACH(ent, t->run, entry) {
+        f = ent->test;
+        match_cnt = 0;
+        prcent = NULL;
+        __CT_SLIST_FOREACH(cent, f->caseq, entry) {
+            c = cent->test;
+            if(__ct_match_filter(c->name)) {
+                match_cnt++;
+            }else{
+                if(prcent == NULL) {
+                    // leave it memory leak
+                    __CT_SLIST_REMOVE_HEAD(f->caseq, entry);
+                }else{
+                    // leave it memory leak
+                    __CT_SLIST_REMOVE_AFTER(prcent, cent, entry);
+                    cent = prcent;
+                }
+
+                f->size--;
+                continue;
+            }
+            prcent = cent;
+        }
+        if(match_cnt == 0) {
+            if(prent == NULL) {
+                // leave it memory leak
+                __CT_SLIST_REMOVE_HEAD(t->run, entry);
+            } else {
+                // leave it memory leak
+                __CT_SLIST_REMOVE_AFTER(prent, ent, entry);
+                ent = prent;
+            }
+            t->r_size--;
+            continue;
+        }
+        prent = ent;
+    }
+    return 0;
+}
+
 int __ct_match_filter(const char* name)
 {
     __test_t* t = NULL;
@@ -723,7 +779,6 @@ int __ct_match_filter(const char* name)
 int __ct_run()
 {
     __test_t* t = NULL;
-    int filter = 0;
     int fix_count = 0;
     int test_count = 0;
 
@@ -742,13 +797,10 @@ int __ct_run()
 
     __test_fixture_entry_t* fent = NULL;
 
-
-    int run = 0;
-
     t = __ct_test();
 
     if(!__CT_SLIST_EMPTY(t->filter)) {
-        filter = 1;
+        __ct_apply_filter();
     }
     fix_count = __ct_get_fixture_count();
     test_count = __ct_get_test_count();
@@ -772,31 +824,23 @@ int __ct_run()
         
         __CT_SLIST_FOREACH(cent, f->caseq, entry) {
             c = cent->test;
-            run = 1;
-            if(filter){
-                if(!__ct_match_filter(c->name)) {
-                    run = 0;
-                }
+            printf("[ RUN      ] %s\n", c->name);
+            testb = clock();
+            if(f->setup) {
+                f->setup();
             }
-            if(run) {
-                printf("[ RUN      ] %s\n", c->name);
-                testb = clock();
-                if(f->setup) {
-                    f->setup();
-                }
 
-                c->test();
+            c->test();
 
-                if(f->teardown){
-                    f->teardown();
-                }
-                teste = clock();
-                used = teste - testb;
-                if(__ct_is_test_failed(c->tf, c->tc)) {
-                    printf("[   FAILED ] %s (%ld ms)\n", c->name, used);
-                }else{
-                    printf("[       OK ] %s (%ld ms)\n", c->name, used);
-                }
+            if(f->teardown) {
+                f->teardown();
+            }
+            teste = clock();
+            used = teste - testb;
+            if(__ct_is_test_failed(c->tf, c->tc)) {
+                printf("[   FAILED ] %s (%ld ms)\n", c->name, used);
+            } else {
+                printf("[       OK ] %s (%ld ms)\n", c->name, used);
             }
         }
         if(f->teardown_testcase) {
