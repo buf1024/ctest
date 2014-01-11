@@ -5,7 +5,7 @@
  *      Author: Luo Guochun
  */
 
-#include "ct.h"
+#include "ctest.h"
 
 TEST(spc, t)
 {

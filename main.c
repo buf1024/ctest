@@ -6,7 +6,7 @@
  */
 #define C_TEST_APP
 
-#include "ct.h"
+#include "ctest.h"
 
 
 TEST(tf2, tc)

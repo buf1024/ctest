@@ -1,11 +1,12 @@
-test
+ctest
 ====
 
-very very simple c test framwork
+very very simple c/c++ test framwork
 
-compile(too old gcc is not accepted):
-gcc -g -Wall -o m atest.c main.c
+currenty it only support gcc in linux/uinx, mingw in windows.
+ 
+please note that, too old gcc is not accepted
 
-please reference atest.c or main.c to see how to use it.
+please reference "exam.c" or "main.c" to see how to use it.
 
 

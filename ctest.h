@@ -1,22 +1,26 @@
 /*
- * ct.h -- very very simple c test framework
+ * ctest.h -- very very simple c/c++ test framework
  *
- * The way of using if is much alike gtest.
+ * It's using c to implement, but of course you can use it in c++.
+ * It only provide the simplest test, no advance test feature provided.
  *
- * You must define USING_C_TEST macro in the c file which include the
- * main function. I think very hard of avoid using this USING_C_TEST
+ * The way of using if is as simple as gtest.
+ *
+ * You must define C_TEST_APP macro in the c/c++ file which include the
+ * main function. I think very hard of avoid using this C_TEST_APP
  * macro, But I failed. if I declare all the function in this file to
  * static, It can compile well(after modifying the __ct_test function),
  * and run well, But when you look inside the finally binary(using nm
- * utility), you will see lots of duplicate symbol, that is not the
- * way I want Any one who knows avoid using the macro, please feel free
- * to tell me(buf1024@gmail.com). thanks a lot
+ * utility in linux/unix), you will see lots of duplicate symbol,
+ * that is not the way I want! Any one who knows how to avoid using
+ * the macro, please feel free to tell me(buf1024@gmail.com).
+ * thanks a lot!
  *
  *  Luo Guochun 2013-12-31
  */
 
-#ifndef __CT_H__
-#define __CT_H__
+#ifndef __CTEST_H__
+#define __CTEST_H__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -978,4 +982,4 @@ int __ct_get_test_count()
 }while(0)
 
 
-#endif /* __CT_H__ */
+#endif /* __CTEST_H__ */
