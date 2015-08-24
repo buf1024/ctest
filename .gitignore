@@ -1,0 +1,11 @@
+# Build/deps dir
+*.rej
+*.orig
+*.mo
+.*.sw?
+*~
+*.pyc
+*.o
+*.so
+*~
+exam
