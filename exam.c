@@ -1,5 +1,5 @@
 /*
- * atest.c
+ * exam.c
  *
  *  Created on: 2013-12-31
  *      Author: Luo Guochun
